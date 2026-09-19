@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可愛風音樂課繳費單產生器 - 雲端強化版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: #fff1f2;
+            background-image: radial-gradient(#fecdd3 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        #receipt-container {
+            background-color: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(244, 63, 94, 0.1), 0 5px 15px rgba(0,0,0,0.03);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #fecdd3;
+        }
+        .piano-header {
+            display: flex;
+            height: 45px;
+            width: 100%;
+            background: #fff;
+            border-bottom: 3px solid #fda4af;
+            position: relative;
+        }
+        .white-key {
+            flex: 1;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.05);
+            border-radius: 0 0 4px 4px;
+        }
+        .black-key {
+            position: absolute;
+            width: 16px;
+            height: 28px;
+            background: #334155;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 1px 2px 3px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .receipt-content {
+            padding: 35px 40px;
+            background: linear-gradient(180deg, #ffffff 0%, #fffbfb 100%);
+        }
+        .cute-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10rem;
+            color: rgba(251, 113, 133, 0.04);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .decor-icon {
+            position: absolute;
+            color: #fde047;
+            opacity: 0.6;
+            z-index: 1;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 2;
+        }
+        .items-table th {
+            text-align: left;
+            padding: 10px 12px;
+            color: #fda4af;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            border-bottom: 2px dashed #fecdd3;
+        }
+        .items-table td {
+            padding: 14px 12px;
+            background-color: #fff;
+            color: #475569;
+            font-weight: 600;
+        }
+        .items-table tbody tr td:first-child {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+            box-shadow: -2px 2px 5px rgba(0,0,0,0.02);
+        }
+        .items-table tbody tr td:last-child {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.02);
+        }
+        .items-table tbody tr td {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .items-table th.amount-col,
+        .items-table td.amount-col {
+            text-align: right;
+        }
+        .total-section {
+            background-color: #ffe4e6;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 25px;
+            position: relative;
+            z-index: 2;
+            border: 2px solid #fecdd3;
+        }
+        .cute-stamp {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 90px;
+            height: 90px;
+            border: 4px dashed #fb7185;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fb7185;
+            transform: rotate(-10deg);
+            opacity: 0.85;
+            z-index: 10;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 4px 10px rgba(251, 113, 133, 0.2);
+        }
+        .cute-stamp i {
+            font-size: 1.8rem;
+            margin-bottom: 2px;
+        }
+        .cute-stamp span {
+            font-weight: 800;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 768px) {
+            .receipt-content { padding: 25px 20px; }
+            .items-table td { padding: 10px 8px; font-size: 0.9rem;}
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <datalist id="course-options">
+        <option value="鋼琴初階"></option>
+        <option value="鋼琴中階"></option>
+        <option value="鋼琴中高階"></option>
+        <option value="鋼琴高階"></option>
+        <option value="教材"></option>
+    </datalist>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-rose-800 flex items-center justify-center md:justify-start">
+                    <i class="fa-solid fa-cat mr-2 text-rose-500"></i>音樂課收費明細產生器
+                </h1>
+                <p class="text-rose-600 mt-1 font-medium text-sm md:text-base">支援上課打卡記錄、雲端跨裝置自動同步與批次結帳 🎵</p>
+            </div>
+            
+            <!-- 右側功能切換與雲端狀態 -->
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <!-- 雲端狀態指示按鈕 -->
+                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-2xl border border-rose-200 shadow-sm">
+                    <span id="cloud-indicator-dot" class="w-3 h-3 rounded-full bg-slate-400"></span>
+                    <span id="cloud-indicator-text" class="text-xs font-bold text-slate-600">未連線</span>
+                    <button onclick="openCloudModal()" class="ml-1 text-xs text-rose-500 hover:text-rose-700 underline font-bold" title="設定 Google Apps Script API">
+                        <i class="fa-solid fa-gear"></i> 設定
+                    </button>
+                    <button onclick="manualSync()" id="btn-manual-sync" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 px-2 py-1 rounded-lg font-bold transition-all ml-1" title="立即手動同步">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-2 flex-wrap justify-center">
+                    <button onclick="switchTab('single')" id="tab-single-btn" class="px-4 py-2 rounded-xl font-bold transition-all bg-rose-500 text-white shadow-md shadow-rose-200">
+                        <i class="fa-solid fa-file-invoice mr-1"></i> 單張編輯預覽
+                    </button>
+                    <button onclick="switchTab('attendance')" id="tab-attendance-btn" class="px-4 py-2 rounded-xl font-bold transition-all bg-white text-rose-600 border-2 border-rose-200 hover:bg-rose-50">
+                        <i class="fa-solid fa-calendar-check mr-1"></i> 上課紀錄管理
+                    </button>
+                    <button onclick="switchTab('batch')" id="tab-batch-btn" class="px-4 py-2 rounded-xl font-bold transition-all bg-white text-rose-600 border-2 border-rose-200 hover:bg-rose-50">
+                        <i class="fa-solid fa-users-rectangle mr-1"></i> 學生名單與批次下載
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 單張編輯模式 -->
+        <div id="view-single" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- 控制面板 -->
+            <div class="lg:col-span-5 bg-white rounded-3xl shadow-lg shadow-rose-100 p-6 sticky top-4 border-2 border-rose-50">
+                <h2 class="text-xl font-bold mb-5 text-slate-700 flex items-center">
+                    <i class="fa-solid fa-pen-to-square text-rose-400 mr-2"></i> 編輯內容
+                </h2>
+                <div class="space-y-5">
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold text-slate-600 mb-1">月份 / 標題</label>
+                            <input type="text" id="input-title" value="" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium transition-colors" oninput="updateReceipt()">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold text-slate-600 mb-1">學生姓名</label>
+                            <input type="text" id="input-name" placeholder="請輸入姓名" value="王小明" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium transition-colors" oninput="updateReceipt()">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-1">給家長/學生的鼓勵話語 (選填)</label>
+                        <input type="text" id="input-note" placeholder="例如：這個月進步很多，繼續保持喔！" value="這個月彈奏得越來越流暢了，繼續保持很棒的節奏感喔！🎵" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium transition-colors" oninput="updateReceipt()">
+                    </div>
+                    <!-- 收款資訊 -->
+                    <div class="mt-5 border-t-2 border-rose-50 pt-5">
+                        <h3 class="text-md font-bold text-slate-700 mb-3"><i class="fa-solid fa-piggy-bank text-rose-400 mr-1"></i> 收款資訊 (選填)</h3>
+                        <div class="space-y-3">
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <div class="w-full sm:w-1/3">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">銀行名稱/代碼</label>
+                                    <input type="text" id="input-bank-name" placeholder="例如: 822 中國信託" class="w-full px-3 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium text-sm transition-colors" oninput="updateReceipt()">
+                                </div>
+                                <div class="w-full sm:w-2/3">
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">收款帳號</label>
+                                    <input type="text" id="input-bank-account" placeholder="請輸入帳號" class="w-full px-3 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium text-sm transition-colors" oninput="updateReceipt()">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">收款 QR Code 圖片</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="file" id="input-qr-code" accept="image/*" class="w-full px-3 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 bg-rose-50/30 text-slate-700 font-medium text-sm transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200 cursor-pointer">
+                                    <button type="button" onclick="removeQrCode()" class="hidden shrink-0 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl transition-colors text-sm font-bold" id="btn-remove-qr" title="移除圖片">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 上課明細列表 -->
+                    <div class="mt-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-md font-bold text-slate-700"><i class="fa-solid fa-list-ul text-rose-400 mr-1"></i> 上課紀錄</h3>
+                        </div>
+                        <div id="items-list" class="space-y-3"></div>
+                        <div class="flex gap-3 mt-4">
+                            <button onclick="addItem()" class="flex-grow py-3 border-2 border-dashed border-rose-200 text-rose-600 font-bold rounded-xl hover:bg-rose-50 hover:border-rose-400 transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-plus-circle mr-2 text-lg"></i> 新增紀錄
+                            </button>
+                            <button onclick="clearAllItems()" class="px-4 py-3 border-2 border-slate-200 text-slate-500 font-bold rounded-xl hover:bg-slate-50 hover:text-rose-500 transition-all flex items-center justify-center" title="清空全部項目">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 pt-5 border-t-2 border-rose-50">
+                    <button onclick="downloadImage()" class="w-full bg-gradient-to-r from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-rose-200 transform transition hover:-translate-y-1 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-cloud-arrow-down mr-2"></i> 下載可愛繳費單圖片
+                    </button>
+                </div>
+            </div>
+
+            <!-- 預覽 -->
+            <div class="lg:col-span-7 flex justify-center p-2 md:p-6 overflow-x-auto">
+                <div id="receipt-container" class="shrink-0">
+                    <div class="piano-header" id="piano-keys-container"></div>
+                    <div class="receipt-content relative">
+                        <div class="cute-watermark"><i class="fa-solid fa-cat"></i></div>
+                        <i class="fa-solid fa-music decor-icon" style="top: 40px; right: 50px; font-size: 1.5rem; transform: rotate(15deg);"></i>
+                        <i class="fa-solid fa-star decor-icon text-yellow-300" style="top: 80px; right: 30px; font-size: 1rem; transform: rotate(-10deg);"></i>
+                        <div class="flex justify-between items-start mb-6 relative z-10">
+                            <div>
+                                <h1 id="receipt-title" class="text-2xl font-extrabold text-slate-700 tracking-wide">上課明細</h1>
+                                <div class="mt-3 flex items-center">
+                                    <div class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-sm font-bold mr-3 flex items-center">
+                                        <i class="fa-solid fa-face-smile mr-1"></i> 學生
+                                    </div>
+                                    <span id="receipt-name" class="text-xl font-bold text-slate-700 border-b-2 border-rose-300 pb-1 min-w-[120px] inline-block whitespace-nowrap">王小明</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-rose-400 mb-1"><i class="fa-solid fa-receipt text-3xl"></i></div>
+                                <p class="text-xs text-slate-400 font-bold font-mono">No. <span id="receipt-no">-</span></p>
+                                <p class="text-xs text-slate-400 font-bold font-mono">Date. <span id="receipt-date">-</span></p>
+                            </div>
+                        </div>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>日期 Date</th>
+                                    <th>課程內容 Lesson</th>
+                                    <th class="amount-col">金額 Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receipt-items-body"></tbody>
+                        </table>
+                        <div class="total-section flex justify-between items-center shadow-sm">
+                            <div class="flex items-center">
+                                <div class="bg-white p-2 rounded-full mr-3 text-rose-400 shadow-sm">
+                                    <i class="fa-solid fa-sack-dollar text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-rose-800 font-extrabold">本月總計 Total</p>
+                                    <p class="text-xs text-rose-600 mt-1 font-semibold">感謝您的支持與配合 🎵</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm text-rose-600 font-bold mr-1">NT$</span>
+                                <span id="receipt-total" class="text-3xl font-extrabold text-rose-600">0</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 bg-yellow-50/50 rounded-xl p-3 border border-yellow-100 text-sm text-slate-600 font-semibold relative z-10 flex items-start gap-2">
+                            <i class="fa-solid fa-comment-dots text-yellow-400 mt-0.5"></i>
+                            <span id="receipt-note">這個月彈奏得越來越流暢了，繼續保持很棒的節奏感喔！🎵</span>
+                        </div>
+                        <div id="receipt-payment-section" class="mt-4 bg-rose-50 rounded-xl p-4 border-2 border-dashed border-rose-200 flex justify-between items-center relative z-10 hidden">
+                            <div class="flex-grow">
+                                <h4 class="text-rose-700 font-bold text-sm mb-2"><i class="fa-solid fa-piggy-bank mr-1"></i> 轉帳 / 繳費資訊</h4>
+                                <div class="flex flex-col gap-1">
+                                    <p class="text-slate-600 text-sm font-semibold flex items-center">
+                                        <span class="w-12 text-slate-400 text-xs">銀行</span>
+                                        <span id="receipt-bank-name">-</span>
+                                    </p>
+                                    <p class="text-slate-600 text-sm font-semibold flex items-center">
+                                        <span class="w-12 text-slate-400 text-xs">帳號</span>
+                                        <span id="receipt-bank-account" class="font-mono text-rose-800 tracking-wider">-</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div id="receipt-qr-container" class="ml-4 hidden shrink-0 bg-white p-1 rounded-lg border border-rose-100 shadow-sm">
+                                <img id="receipt-qr-img" src="" alt="QR Code" class="w-20 h-20 object-cover rounded">
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-between items-end relative z-10 text-xs font-bold text-slate-400">
+                            <div>
+                                <p class="flex items-center"><i class="fa-solid fa-shield-cat text-rose-300 mr-1 text-base"></i> 電子收費明細</p>
+                            </div>
+                            <div class="text-right">
+                                <p>Teacher / 授課老師</p>
+                                <div class="mt-2 border-b-2 border-slate-300 w-32 ml-auto h-6"></div>
+                            </div>
+                        </div>
+                        <div class="cute-stamp">
+                            <i class="fa-solid fa-paw"></i>
+                            <span>CONFIRMED</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上課紀錄管理 -->
+        <div id="view-attendance" class="hidden bg-white rounded-3xl shadow-lg shadow-rose-100 p-6 md:p-8 border-2 border-rose-50">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b-2 border-rose-50 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-700 flex items-center">
+                        <i class="fa-solid fa-calendar-check text-rose-400 mr-2"></i> 學生上課打卡記錄本
+                    </h2>
+                    <p class="text-slate-500 text-sm mt-1">隨時記錄每位學生的上課時間與項目，結帳時系統將會自動抓取並整合！</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openAttendanceModal()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-md shadow-rose-200 transition-all flex items-center text-sm">
+                        <i class="fa-solid fa-plus-circle mr-2"></i> 新增上課打卡
+                    </button>
+                </div>
+            </div>
+            <div class="bg-rose-50/50 p-4 rounded-2xl border border-rose-100 mb-6 flex flex-wrap gap-4 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-bold text-slate-600"><i class="fa-solid fa-filter text-rose-400 mr-1"></i> 依學生篩選：</label>
+                    <select id="filter-attendance-student" onchange="renderAttendanceLog()" class="px-4 py-2 border-2 border-rose-200 rounded-xl bg-white text-slate-700 font-bold text-sm outline-none">
+                        <option value="all">全部學生</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-bold text-slate-600"><i class="fa-solid fa-calendar text-rose-400 mr-1"></i> 月份範圍：</label>
+                    <input type="month" id="filter-attendance-start" onchange="renderAttendanceLog()" class="px-3 py-1.5 border-2 border-rose-200 rounded-xl bg-white text-slate-700 font-bold text-sm outline-none">
+                    <span class="text-slate-400 font-bold">~</span>
+                    <input type="month" id="filter-attendance-end" onchange="renderAttendanceLog()" class="px-3 py-1.5 border-2 border-rose-200 rounded-xl bg-white text-slate-700 font-bold text-sm outline-none">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b-2 border-rose-100 text-rose-400 text-sm">
+                            <th class="py-3 px-4">上課日期 Date</th>
+                            <th class="py-3 px-4">學生姓名 Student</th>
+                            <th class="py-3 px-4">課程內容 Description</th>
+                            <th class="py-3 px-4 text-right">自動帶入金額 Amount</th>
+                            <th class="py-3 px-4 text-center">操作 Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-log-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 學生名單與批次產生 -->
+        <div id="view-batch" class="hidden bg-white rounded-3xl shadow-lg shadow-rose-100 p-6 md:p-8 border-2 border-rose-50">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b-2 border-rose-50 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-700 flex items-center">
+                        <i class="fa-solid fa-users-gear text-rose-400 mr-2"></i> 學生名單與批次結帳
+                    </h2>
+                    <p class="text-slate-500 text-sm mt-1">勾選要結帳的學生，系統將自動依據「上課紀錄」整合該月份時段與金額，一鍵批次產生圖片！</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openStudentModal()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center text-sm">
+                        <i class="fa-solid fa-user-plus mr-2"></i> 新增學生
+                    </button>
+                    <button onclick="batchDownload()" id="batch-download-btn" class="bg-gradient-to-r from-pink-400 to-rose-500 hover:from-pink-500 hover:to-rose-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-rose-200 transition-all flex items-center text-sm">
+                        <i class="fa-solid fa-cloud-arrow-down mr-2"></i> 批次下載勾選學生的繳費單
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 border-r-0 lg:border-r-2 border-rose-50 pr-0 lg:pr-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-700 text-base"><i class="fa-solid fa-address-book text-rose-400 mr-1"></i> 我的學生名單</h3>
+                        <span id="student-count" class="text-xs bg-rose-100 text-rose-600 font-bold px-2.5 py-1 rounded-full">0 位學生</span>
+                    </div>
+                    <div id="student-roster-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="bg-rose-50/50 rounded-2xl p-6 border-2 border-rose-100">
+                        <h3 class="font-bold text-slate-700 text-base mb-4 flex items-center">
+                            <i class="fa-solid fa-calendar-days text-rose-400 mr-2"></i> 結帳參數設定
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-1">月份標題</label>
+                                <input type="text" id="batch-title" value="" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl bg-white text-slate-700 font-medium" oninput="saveData()">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-600 mb-1">結帳結算區間 (自動抓取打卡記錄)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="month" id="batch-start-month" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl bg-white text-slate-700 font-medium" onchange="saveData()">
+                                    <span class="text-slate-400 font-bold">~</span>
+                                    <input type="month" id="batch-end-month" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl bg-white text-slate-700 font-medium" onchange="saveData()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-slate-600 mb-1">給家長的一般鼓勵話語</label>
+                            <input type="text" id="batch-note" value="這個月學習表現很棒，請繼續保持喔！🎵" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl bg-white text-slate-700 font-medium" oninput="saveData()">
+                        </div>
+                        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium flex items-start gap-2 mt-4">
+                            <i class="fa-solid fa-circle-info mt-0.5"></i>
+                            <div>
+                                <strong>自動整合說明：</strong> 系統將依據上方指定的月份與勾選的學生，自動從「上課紀錄管理」中抓取對應的打卡日期與單堂學費計算總額，不需手動逐筆輸入！
+                            </div>
+                        </div>
+                        <div id="batch-progress-container" class="hidden mt-6 bg-white p-4 rounded-xl border border-rose-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span id="batch-progress-text" class="text-sm font-bold text-slate-700">正在產生繳費單...</span>
+                                <span id="batch-progress-count" class="text-sm font-bold text-rose-600">0 / 0</span>
+                            </div>
+                            <div class="w-full bg-rose-100 h-3 rounded-full overflow-hidden">
+                                <div id="batch-progress-bar" class="bg-rose-500 h-full w-0 transition-all duration-300"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 雲端設定彈窗 -->
+    <div id="cloud-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 border-2 border-rose-100">
+            <h3 class="text-xl font-bold text-slate-700 mb-3 flex items-center">
+                <i class="fa-solid fa-cloud text-rose-400 mr-2"></i> Google Apps Script 雲端同步設定
+            </h3>
+            <p class="text-slate-500 text-xs mb-4 leading-relaxed">
+                將已部署的 Google Apps Script 網頁應用程式網址 (Web App URL) 貼在下方。系統會在您修改內容時，於背景<strong>自動儲存</strong>至您的 Google 雲端硬碟！
+            </p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Web App API URL</label>
+                    <input type="url" id="modal-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-mono text-xs">
+                </div>
+                <div class="p-3 bg-rose-50 rounded-xl text-rose-700 text-xs">
+                    💡 提示：若未填寫或暫時離線，系統仍會自動保存在瀏覽器 LocalStorage，確保資料不遺失。
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeCloudModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors text-sm">取消</button>
+                <button onclick="saveCloudSettings()" class="px-5 py-2.5 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-200 transition-all text-sm">儲存並連接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 學生彈窗 -->
+    <div id="student-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-rose-100">
+            <h3 id="student-modal-title" class="text-xl font-bold text-slate-700 mb-4 flex items-center">
+                <i class="fa-solid fa-user-plus text-rose-400 mr-2"></i> 新增學生資料
+            </h3>
+            <input type="hidden" id="modal-student-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">學生姓名</label>
+                    <input type="text" id="modal-name" placeholder="例如：林小美" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">預設課程名稱</label>
+                    <input type="text" id="modal-default-desc" list="course-options" placeholder="可選擇預設值或自行輸入" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium" value="鋼琴初階">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">單堂學費金額 (NT$) <span class="text-xs text-rose-400 font-normal">自動帶入打卡與繳費單</span></label>
+                    <input type="number" id="modal-default-amount" placeholder="800" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium" value="800">
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeStudentModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">取消</button>
+                <button onclick="saveStudent()" class="px-5 py-2.5 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-200 transition-all">儲存學生</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 打卡彈窗 -->
+    <div id="attendance-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border-2 border-rose-100">
+            <h3 class="text-xl font-bold text-slate-700 mb-4 flex items-center">
+                <i class="fa-solid fa-calendar-check text-rose-400 mr-2"></i> 記錄學生上課時間
+            </h3>
+            <input type="hidden" id="modal-attendance-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">選擇學生</label>
+                    <select id="modal-attendance-student" onchange="onAttendanceStudentChange()" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium bg-white"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">上課日期</label>
+                    <input type="date" id="modal-attendance-date" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">課程名稱與說明</label>
+                    <input type="text" id="modal-attendance-desc" list="course-options" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium" placeholder="可選擇預設值或自行輸入">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">金額 (NT$) <span class="text-xs text-rose-400 font-normal">已從學生資料自動帶入</span></label>
+                    <input type="number" id="modal-attendance-amount" class="w-full px-4 py-2 border-2 border-rose-100 rounded-xl focus:ring-0 focus:border-rose-400 text-slate-700 font-medium" placeholder="800">
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeAttendanceModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">取消</button>
+                <button onclick="saveAttendanceRecord()" class="px-5 py-2.5 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-200 transition-all">儲存打卡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隱藏截圖容器 (加入預先計算樣式以防樣式跑版) -->
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="hidden-receipt-container" style="background-color: #ffffff; border-radius: 24px; width: 600px; position: relative; overflow: hidden; border: 4px solid #ffe4e6; font-family: 'Nunito', 'Noto Sans TC', sans-serif;"></div>
+    </div>
+
+    <script>
+        // ---------- 核心資料模型 ----------
+        let students = [
+            { id: 's1', name: '王小明', defaultDesc: '鋼琴進階課 (1hr)', defaultAmount: 800, selected: true },
+            { id: 's2', name: '林小美', defaultDesc: '小提琴個別課 (1hr)', defaultAmount: 900, selected: true },
+            { id: 's3', name: '張小華', defaultDesc: '鋼琴基礎課 (50m)', defaultAmount: 700, selected: false }
+        ];
+
+        let attendanceLogs = [];
+        let items = [];
+        let globalQrCodeDataUrl = '';
+        let gasApiUrl = localStorage.getItem('music_receipt_gas_url') || '';
+
+        // 雲端同步防抖 Timer
+        let cloudSyncDebounceTimer = null;
+        let isSyncing = false;
+
+        // ---------- 輔助函數 ----------
+        function formatMoney(amount) { 
+            return (Number(amount) || 0).toLocaleString('en-US'); 
+        }
+
+        function generateId(prefix) { 
+            return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); 
+        }
+
+        function getFormattedDate(d = new Date()) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return { yyyy, mm, dd, str: `${yyyy}-${mm}-${dd}`, display: `${yyyy}/${mm}/${dd}`, ym: `${yyyy}-${mm}` };
+        }
+
+        // ---------- 雲端狀態 UI 控制 ----------
+        function setCloudStatus(status, text) {
+            const dot = document.getElementById('cloud-indicator-dot');
+            const statusText = document.getElementById('cloud-indicator-text');
+            if (!dot || !statusText) return;
+
+            statusText.textContent = text;
+            if (status === 'connected') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+            } else if (status === 'syncing') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-spin';
+            } else if (status === 'error') {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+            } else {
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+            }
+        }
+
+        // ---------- 資料收集與打包 ----------
+        function getCurrentPayload() {
+            return {
+                students,
+                attendanceLogs,
+                items,
+                meta: {
+                    title: document.getElementById('input-title').value,
+                    name: document.getElementById('input-name').value,
+                    note: document.getElementById('input-note').value,
+                    bankName: document.getElementById('input-bank-name').value,
+                    bankAccount: document.getElementById('input-bank-account').value,
+                    qrCode: globalQrCodeDataUrl,
+                    batchTitle: document.getElementById('batch-title').value,
+                    batchStartMonth: document.getElementById('batch-start-month').value,
+                    batchEndMonth: document.getElementById('batch-end-month').value,
+                    batchNote: document.getElementById('batch-note').value
+                },
+                lastSaved: new Date().toISOString()
+            };
+        }
+
+        // ---------- 儲存邏輯 (含 LocalStorage 與 雲端自動同步防抖) ----------
+        function saveData() {
+            // 1. 立即儲存至 LocalStorage (防止斷網或即刻關閉)
+            try {
+                localStorage.setItem('music_receipt_students', JSON.stringify(students));
+                localStorage.setItem('music_receipt_attendance', JSON.stringify(attendanceLogs));
+                localStorage.setItem('music_receipt_items', JSON.stringify(items));
+                
+                const meta = {
+                    title: document.getElementById('input-title').value,
+                    name: document.getElementById('input-name').value,
+                    note: document.getElementById('input-note').value,
+                    bankName: document.getElementById('input-bank-name').value,
+                    bankAccount: document.getElementById('input-bank-account').value,
+                    qrCode: globalQrCodeDataUrl,
+                    batchTitle: document.getElementById('batch-title').value,
+                    batchStartMonth: document.getElementById('batch-start-month').value,
+                    batchEndMonth: document.getElementById('batch-end-month').value,
+                    batchNote: document.getElementById('batch-note').value
+                };
+                localStorage.setItem('music_receipt_meta', JSON.stringify(meta));
+            } catch (e) {
+                console.error('LocalStorage 儲存失敗:', e);
+            }
+
+            // 2. 雲端自動同步 (防抖機制：2秒內無新操作才發出 POST)
+            if (gasApiUrl) {
+                setCloudStatus('syncing', '準備同步...');
+                clearTimeout(cloudSyncDebounceTimer);
+                cloudSyncDebounceTimer = setTimeout(() => {
+                    executeCloudSync();
+                }, 2000);
+            } else {
+                setCloudStatus('offline', '僅本地儲存');
+            }
+        }
+
+        async function executeCloudSync() {
+            if (!gasApiUrl || isSyncing) return;
+            isSyncing = true;
+            setCloudStatus('syncing', '正在上傳雲端...');
+
+            try {
+                const payload = getCurrentPayload();
+                // 避開 CORS Preflight OPTIONS 請求：使用 text/plain
+                const res = await fetch(gasApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload),
+                    redirect: 'follow'
+                });
+
+                const result = await res.json();
+                if (result.status === 'success') {
+                    setCloudStatus('connected', '已自動儲存至雲端');
+                } else {
+                    throw new Error(result.message || '雲端儲存失敗');
+                }
+            } catch (err) {
+                console.warn('雲端同步錯誤:', err);
+                setCloudStatus('error', '雲端連線異常');
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        async function manualSync() {
+            if (!gasApiUrl) {
+                openCloudModal();
+                return;
+            }
+            await executeCloudSync();
+        }
+
+        // ---------- 讀取資料 (優先從雲端讀取，失敗時降級使用本地快取) ----------
+        async function loadInitialData() {
+            const todayObj = getFormattedDate();
+            
+            // 設定預設預設欄位值
+            document.getElementById('input-title').value = `${todayObj.yyyy}年 ${todayObj.mm}月 上課明細`;
+            document.getElementById('batch-title').value = `${todayObj.yyyy}年 ${todayObj.mm}月 上課明細`;
+            document.getElementById('batch-start-month').value = todayObj.ym;
+            document.getElementById('batch-end-month').value = todayObj.ym;
+            document.getElementById('filter-attendance-start').value = todayObj.ym;
+            document.getElementById('filter-attendance-end').value = todayObj.ym;
+
+            // 先載入 LocalStorage 當作底稿
+            loadFromLocalStorage();
+
+            // 若有設定 GAS URL，發起雲端拉取
+            if (gasApiUrl) {
+                setCloudStatus('syncing', '載入雲端資料中...');
+                try {
+                    const response = await fetch(gasApiUrl);
+                    const cloudData = await response.json();
+
+                    if (cloudData && !cloudData.status) {
+                        if (Array.isArray(cloudData.students)) students = cloudData.students;
+                        if (Array.isArray(cloudData.attendanceLogs)) attendanceLogs = cloudData.attendanceLogs;
+                        if (Array.isArray(cloudData.items)) items = cloudData.items;
+
+                        if (cloudData.meta) {
+                            applyMetaData(cloudData.meta);
+                        }
+                        setCloudStatus('connected', '雲端同步中');
+                    } else {
+                        // 雲端尚未建立檔案
+                        setCloudStatus('connected', '雲端就緒 (初始中)');
+                        saveData(); // 立即將本地初始資料同步至雲端
+                    }
+                } catch (error) {
+                    console.warn('讀取雲端資料失敗，使用本地快取:', error);
+                    setCloudStatus('error', '離線 (讀取本地快取)');
+                }
+            } else {
+                setCloudStatus('offline', '未設定雲端');
+            }
+
+            // 若完全無上課打卡紀錄，給予初始範例資料
+            if (attendanceLogs.length === 0) {
+                attendanceLogs = [
+                    { id: 'a1', studentId: 's1', name: '王小明', date: `${todayObj.ym}-05`, description: '鋼琴進階課 (1hr)', amount: 800 },
+                    { id: 'a2', studentId: 's1', name: '王小明', date: `${todayObj.ym}-12`, description: '鋼琴進階課 (1hr)', amount: 800 },
+                    { id: 'a3', studentId: 's1', name: '王小明', date: `${todayObj.ym}-19`, description: '樂理補充教材', amount: 350 },
+                    { id: 'a4', studentId: 's2', name: '林小美', date: `${todayObj.ym}-06`, description: '小提琴個別課 (1hr)', amount: 900 }
+                ];
+            }
+
+            // 初始化單張項目
+            if (items.length === 0) {
+                loadSingleItemsFromAttendance('王小明', todayObj.ym);
+            }
+
+            // 渲染所有視圖
+            renderInputItems();
+            renderStudentRoster();
+            renderAttendanceLog();
+            populateAttendanceStudentSelect();
+            updateReceipt();
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedStudents = localStorage.getItem('music_receipt_students');
+                if (savedStudents) students = JSON.parse(savedStudents);
+
+                const savedLogs = localStorage.getItem('music_receipt_attendance');
+                if (savedLogs) attendanceLogs = JSON.parse(savedLogs);
+
+                const savedItems = localStorage.getItem('music_receipt_items');
+                if (savedItems) items = JSON.parse(savedItems);
+
+                const savedMeta = localStorage.getItem('music_receipt_meta');
+                if (savedMeta) {
+                    applyMetaData(JSON.parse(savedMeta));
+                }
+            } catch (e) {
+                console.error('讀取 LocalStorage 發生異常:', e);
+            }
+        }
+
+        function applyMetaData(meta) {
+            if (meta.title) document.getElementById('input-title').value = meta.title;
+            if (meta.name) document.getElementById('input-name').value = meta.name;
+            if (meta.note !== undefined) document.getElementById('input-note').value = meta.note;
+            if (meta.bankName) document.getElementById('input-bank-name').value = meta.bankName;
+            if (meta.bankAccount) document.getElementById('input-bank-account').value = meta.bankAccount;
+            if (meta.batchTitle) document.getElementById('batch-title').value = meta.batchTitle;
+            if (meta.batchStartMonth) document.getElementById('batch-start-month').value = meta.batchStartMonth;
+            if (meta.batchEndMonth) document.getElementById('batch-end-month').value = meta.batchEndMonth;
+            if (meta.batchNote !== undefined) document.getElementById('batch-note').value = meta.batchNote;
+            
+            if (meta.qrCode) {
+                globalQrCodeDataUrl = meta.qrCode;
+                const qrContainer = document.getElementById('receipt-qr-container');
+                const qrImg = document.getElementById('receipt-qr-img');
+                const btnRemoveQr = document.getElementById('btn-remove-qr');
+                qrImg.src = globalQrCodeDataUrl;
+                qrContainer.classList.remove('hidden');
+                if (btnRemoveQr) btnRemoveQr.classList.remove('hidden');
+            }
+        }
+
+        // ---------- 雲端設定彈窗處理 ----------
+        function openCloudModal() {
+            document.getElementById('modal-gas-url').value = gasApiUrl;
+            document.getElementById('cloud-modal').classList.remove('hidden');
+        }
+
+        function closeCloudModal() {
+            document.getElementById('cloud-modal').classList.add('hidden');
+        }
+
+        function saveCloudSettings() {
+            const urlInput = document.getElementById('modal-gas-url').value.trim();
+            gasApiUrl = urlInput;
+            localStorage.setItem('music_receipt_gas_url', gasApiUrl);
+            closeCloudModal();
+            loadInitialData(); // 重新拉取並連接
+        }
+
+        // ---------- 初始化生命週期 ----------
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = getFormattedDate();
+            document.getElementById('receipt-date').textContent = today.display;
+            const randomNum = Math.floor(Math.random() * 900) + 100;
+            document.getElementById('receipt-no').textContent = `${today.yyyy.toString().slice(-2)}${today.mm}${today.dd}-${randomNum}`;
+
+            document.getElementById('input-qr-code').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const qrContainer = document.getElementById('receipt-qr-container');
+                const qrImg = document.getElementById('receipt-qr-img');
+                const btnRemoveQr = document.getElementById('btn-remove-qr');
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        globalQrCodeDataUrl = event.target.result;
+                        qrImg.src = globalQrCodeDataUrl;
+                        qrContainer.classList.remove('hidden');
+                        if (btnRemoveQr) btnRemoveQr.classList.remove('hidden');
+                        updateReceipt();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    removeQrCode();
+                }
+            });
+
+            generatePianoKeys();
+            loadInitialData();
+        });
+
+        // ---------- 切換分頁 ----------
+        function switchTab(mode) {
+            const btnSingle = document.getElementById('tab-single-btn');
+            const btnAttendance = document.getElementById('tab-attendance-btn');
+            const btnBatch = document.getElementById('tab-batch-btn');
+            const viewSingle = document.getElementById('view-single');
+            const viewAttendance = document.getElementById('view-attendance');
+            const viewBatch = document.getElementById('view-batch');
+
+            [btnSingle, btnAttendance, btnBatch].forEach(b => {
+                b.className = "px-4 py-2 rounded-xl font-bold transition-all bg-white text-rose-600 border-2 border-rose-200 hover:bg-rose-50";
+            });
+            viewSingle.classList.add('hidden');
+            viewAttendance.classList.add('hidden');
+            viewBatch.classList.add('hidden');
+
+            if (mode === 'single') {
+                btnSingle.className = "px-4 py-2 rounded-xl font-bold transition-all bg-rose-500 text-white shadow-md shadow-rose-200";
+                viewSingle.classList.remove('hidden');
+                renderInputItems();
+                updateReceipt();
+            } else if (mode === 'attendance') {
+                btnAttendance.className = "px-4 py-2 rounded-xl font-bold transition-all bg-rose-500 text-white shadow-md shadow-rose-200";
+                viewAttendance.classList.remove('hidden');
+                renderAttendanceLog();
+                populateAttendanceStudentSelect();
+            } else {
+                btnBatch.className = "px-4 py-2 rounded-xl font-bold transition-all bg-rose-500 text-white shadow-md shadow-rose-200";
+                viewBatch.classList.remove('hidden');
+                renderStudentRoster();
+            }
+        }
+
+        // ---------- 鋼琴鍵盤繪製 ----------
+        function generatePianoKeys() {
+            const container = document.getElementById('piano-keys-container');
+            container.innerHTML = '';
+            const whiteKeyCount = 20;
+            for(let i = 0; i < whiteKeyCount; i++) {
+                const whiteKey = document.createElement('div');
+                whiteKey.className = 'white-key';
+                container.appendChild(whiteKey);
+            }
+            let keyWidth = 100 / whiteKeyCount;
+            for(let i = 0; i < whiteKeyCount - 1; i++) {
+                if (i % 7 !== 2 && i % 7 !== 6) {
+                    const blackKey = document.createElement('div');
+                    blackKey.className = 'black-key';
+                    blackKey.style.left = `calc(${(i + 1) * keyWidth}% - 8px)`;
+                    container.appendChild(blackKey);
+                }
+            }
+        }
+
+        // ---------- 單張明細處理 ----------
+        function loadSingleItemsFromAttendance(studentName, yearMonth) {
+            const filtered = attendanceLogs.filter(log => log.name === studentName && log.date.startsWith(yearMonth));
+            items = filtered.map(f => ({ id: f.id, date: f.date, description: f.description, amount: f.amount }));
+        }
+
+        function renderInputItems() {
+            const listContainer = document.getElementById('items-list');
+            listContainer.innerHTML = '';
+            if (items.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-slate-400 py-4 text-sm bg-rose-50/30 rounded-xl border border-rose-100">尚無上課紀錄，可點擊「新增紀錄」或從上課打卡帶入</div>`;
+                return;
+            }
+            items.forEach((item) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex gap-3 items-center bg-rose-50/50 p-3 rounded-xl border border-rose-100 hover:border-rose-300 transition-colors';
+                itemDiv.innerHTML = `
+                    <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-2">
+                        <div class="md:col-span-4">
+                            <input type="date" value="${item.date}" onchange="updateItemData('${item.id}', 'date', this.value)" class="w-full px-3 py-2 text-sm font-bold text-slate-600 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none">
+                        </div>
+                        <div class="md:col-span-5">
+                            <input type="text" list="course-options" value="${item.description}" placeholder="項目說明" oninput="updateItemData('${item.id}', 'description', this.value)" class="w-full px-3 py-2 text-sm font-bold text-slate-600 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none">
+                        </div>
+                        <div class="md:col-span-3 relative">
+                            <span class="absolute left-3 top-2 text-slate-400 font-bold">$</span>
+                            <input type="number" value="${item.amount}" placeholder="金額" oninput="updateItemData('${item.id}', 'amount', this.value)" class="w-full pl-7 pr-2 py-2 text-sm font-bold text-slate-600 border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-300 outline-none">
+                        </div>
+                    </div>
+                    <button onclick="removeItem('${item.id}')" class="text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="刪除">
+                        <i class="fa-solid fa-trash-can text-lg"></i>
+                    </button>
+                `;
+                listContainer.appendChild(itemDiv);
+            });
+        }
+
+        function addItem() {
+            const currentName = document.getElementById('input-name').value || '學生';
+            const studentObj = students.find(s => s.name === currentName);
+            const defaultDesc = studentObj ? studentObj.defaultDesc : '鋼琴課';
+            const defaultAmount = studentObj ? studentObj.defaultAmount : 800;
+            const newId = generateId('manual');
+            const todayStr = getFormattedDate().str;
+            items.push({ id: newId, date: todayStr, description: defaultDesc, amount: defaultAmount });
+            renderInputItems();
+            updateReceipt();
+        }
+
+        function removeItem(id) {
+            items = items.filter(item => item.id !== id);
+            renderInputItems();
+            updateReceipt();
+        }
+
+        function updateItemData(id, field, value) {
+            const itemIndex = items.findIndex(item => item.id === id);
+            if (itemIndex > -1) {
+                if (field === 'amount') items[itemIndex][field] = Number(value) || 0;
+                else items[itemIndex][field] = value;
+                updateReceipt();
+            }
+        }
+
+        function clearAllItems() {
+            if (items.length > 0 && confirm('確定要清空所有的上課紀錄嗎？')) {
+                items = [];
+                renderInputItems();
+                updateReceipt();
+            }
+        }
+
+        function removeQrCode() {
+            globalQrCodeDataUrl = '';
+            const qrInput = document.getElementById('input-qr-code');
+            qrInput.value = '';
+            const qrContainer = document.getElementById('receipt-qr-container');
+            const qrImg = document.getElementById('receipt-qr-img');
+            const btnRemoveQr = document.getElementById('btn-remove-qr');
+            qrImg.src = '';
+            qrContainer.classList.add('hidden');
+            if(btnRemoveQr) btnRemoveQr.classList.add('hidden');
+            updateReceipt();
+        }
+
+        // ---------- 更新預覽與呼叫儲存 ----------
+        function updateReceipt() {
+            document.getElementById('receipt-title').textContent = document.getElementById('input-title').value || '上課明細';
+            document.getElementById('receipt-name').textContent = document.getElementById('input-name').value || '未填寫';
+            
+            const noteText = document.getElementById('input-note').value;
+            const noteContainer = document.getElementById('receipt-note').parentElement;
+            if (noteText.trim() === '') {
+                noteContainer.style.display = 'none';
+            } else {
+                noteContainer.style.display = 'flex';
+                document.getElementById('receipt-note').textContent = noteText;
+            }
+
+            const bankName = document.getElementById('input-bank-name').value.trim();
+            const bankAccount = document.getElementById('input-bank-account').value.trim();
+            const paymentSection = document.getElementById('receipt-payment-section');
+            if (bankName || bankAccount || globalQrCodeDataUrl) {
+                paymentSection.classList.remove('hidden');
+                document.getElementById('receipt-bank-name').textContent = bankName || '(未提供)';
+                document.getElementById('receipt-bank-account').textContent = bankAccount || '(未提供)';
+            } else {
+                paymentSection.classList.add('hidden');
+            }
+
+            const tbody = document.getElementById('receipt-items-body');
+            tbody.innerHTML = '';
+            let total = 0;
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-slate-400 py-6"><i class="fa-solid fa-inbox text-2xl mb-2 block"></i> 尚未新增項目</td></tr>`;
+            } else {
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    let displayDate = item.date;
+                    if(item.date) {
+                        const parts = item.date.split('-');
+                        if(parts.length === 3) displayDate = `${parts[1]}/${parts[2]}`;
+                    }
+                    tr.innerHTML = `
+                        <td class="font-mono text-sm tracking-wide text-rose-600">${displayDate || '-'}</td>
+                        <td>${item.description || '-'}</td>
+                        <td class="amount-col font-mono text-slate-700 tracking-wide">$${formatMoney(item.amount)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                    total += Number(item.amount) || 0;
+                });
+            }
+            document.getElementById('receipt-total').textContent = formatMoney(total);
+            saveData();
+        }
+
+        // ---------- 下載單張圖片 ----------
+        function downloadImage() {
+            const receiptElement = document.getElementById('receipt-container');
+            const btn = document.querySelector('button[onclick="downloadImage()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 圖片產生中，請稍候...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                html2canvas(receiptElement, { scale: 2.5, backgroundColor: null, useCORS: true }).then(canvas => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    const image = canvas.toDataURL("image/png");
+                    const link = document.createElement('a');
+                    const name = document.getElementById('input-name').value || '未命名';
+                    const today = getFormattedDate();
+                    link.download = `${name}_${today.mm}月音樂課繳費單.png`;
+                    link.href = image;
+                    link.click();
+                }).catch(err => {
+                    console.error('生成圖片失敗:', err);
+                    alert('產生圖片時發生錯誤，請稍後再試。');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 300);
+        }
+
+        // ---------- 上課紀錄打卡管理 ----------
+        function populateAttendanceStudentSelect() {
+            const filterSelect = document.getElementById('filter-attendance-student');
+            const modalSelect = document.getElementById('modal-attendance-student');
+            const currentFilterVal = filterSelect.value;
+            const currentModalVal = modalSelect.value;
+            
+            let filterOptionsHTML = `<option value="all">全部學生</option>`;
+            let modalOptionsHTML = ``;
+            students.forEach(s => {
+                filterOptionsHTML += `<option value="${s.id}">${s.name}</option>`;
+                modalOptionsHTML += `<option value="${s.id}">${s.name} (${s.defaultDesc} - $${s.defaultAmount})</option>`;
+            });
+            filterSelect.innerHTML = filterOptionsHTML;
+            modalSelect.innerHTML = modalOptionsHTML;
+            if (currentFilterVal) filterSelect.value = currentFilterVal;
+            if (currentModalVal) modalSelect.value = currentModalVal;
+        }
+
+        function renderAttendanceLog() {
+            const tbody = document.getElementById('attendance-log-tbody');
+            const studentFilter = document.getElementById('filter-attendance-student').value;
+            const startMonth = document.getElementById('filter-attendance-start').value;
+            const endMonth = document.getElementById('filter-attendance-end').value;
+
+            let filtered = attendanceLogs.filter(log => {
+                const matchStudent = (studentFilter === 'all' || log.studentId === studentFilter);
+                const logMonth = log.date.substring(0, 7);
+                const matchMonth = (!startMonth || logMonth >= startMonth) && (!endMonth || logMonth <= endMonth);
+                return matchStudent && matchMonth;
+            });
+            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-slate-400 py-10 bg-rose-50/20 rounded-2xl">沒有找到符合條件的上課打卡紀錄</td></tr>`;
+                return;
+            }
+            filtered.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-rose-50 hover:bg-rose-50/40 transition-colors";
+                let displayDate = log.date;
+                if(log.date) {
+                    const parts = log.date.split('-');
+                    if(parts.length === 3) displayDate = `${parts[0]}/${parts[1]}/${parts[2]}`;
+                }
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono text-slate-700 font-bold">${displayDate}</td>
+                    <td class="py-3.5 px-4 font-bold text-rose-700"><span class="bg-rose-100 px-2.5 py-1 rounded-full text-xs">${log.name}</span></td>
+                    <td class="py-3.5 px-4 font-semibold text-slate-600">${log.description}</td>
+                    <td class="py-3.5 px-4 text-right font-mono font-extrabold text-slate-700">$${formatMoney(log.amount)}</td>
+                    <td class="py-3.5 px-4 text-center">
+                        <button onclick="editAttendanceRecord('${log.id}')" class="p-2 text-slate-400 hover:text-rose-600 transition-colors" title="編輯"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteAttendanceRecord('${log.id}')" class="p-2 text-slate-400 hover:text-rose-600 transition-colors" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAttendanceModal(id = null) {
+            populateAttendanceStudentSelect();
+            document.getElementById('attendance-modal').classList.remove('hidden');
+            if (id) {
+                const record = attendanceLogs.find(a => a.id === id);
+                if (record) {
+                    document.getElementById('modal-attendance-id').value = record.id;
+                    document.getElementById('modal-attendance-student').value = record.studentId;
+                    document.getElementById('modal-attendance-date').value = record.date;
+                    document.getElementById('modal-attendance-desc').value = record.description;
+                    document.getElementById('modal-attendance-amount').value = record.amount;
+                }
+            } else {
+                document.getElementById('modal-attendance-id').value = '';
+                document.getElementById('modal-attendance-date').value = getFormattedDate().str;
+                const firstStudent = students[0];
+                if (firstStudent) {
+                    document.getElementById('modal-attendance-student').value = firstStudent.id;
+                    document.getElementById('modal-attendance-desc').value = firstStudent.defaultDesc;
+                    document.getElementById('modal-attendance-amount').value = firstStudent.defaultAmount;
+                }
+            }
+        }
+
+        function closeAttendanceModal() { 
+            document.getElementById('attendance-modal').classList.add('hidden'); 
+        }
+
+        function onAttendanceStudentChange() {
+            const studentId = document.getElementById('modal-attendance-student').value;
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                document.getElementById('modal-attendance-desc').value = student.defaultDesc;
+                document.getElementById('modal-attendance-amount').value = student.defaultAmount;
+            }
+        }
+
+        function saveAttendanceRecord() {
+            const id = document.getElementById('modal-attendance-id').value;
+            const studentId = document.getElementById('modal-attendance-student').value;
+            const student = students.find(s => s.id === studentId);
+            const date = document.getElementById('modal-attendance-date').value;
+            const description = document.getElementById('modal-attendance-desc').value.trim() || '鋼琴課';
+            const amount = Number(document.getElementById('modal-attendance-amount').value) || 0;
+            
+            if (!student || !date) { 
+                alert('請完整填寫學生與上課日期'); 
+                return; 
+            }
+
+            if (id) {
+                const record = attendanceLogs.find(a => a.id === id);
+                if (record) { 
+                    record.studentId = student.id; 
+                    record.name = student.name; 
+                    record.date = date; 
+                    record.description = description; 
+                    record.amount = amount; 
+                }
+            } else {
+                attendanceLogs.push({ id: generateId('att'), studentId: student.id, name: student.name, date, description, amount });
+            }
+            closeAttendanceModal();
+            renderAttendanceLog();
+            saveData();
+        }
+
+        function editAttendanceRecord(id) { 
+            openAttendanceModal(id); 
+        }
+
+        function deleteAttendanceRecord(id) {
+            if (confirm('確定要刪除這筆打卡紀錄嗎？')) {
+                attendanceLogs = attendanceLogs.filter(a => a.id !== id);
+                renderAttendanceLog();
+                saveData();
+            }
+        }
+
+        // ---------- 學生名單管理 ----------
+        function renderStudentRoster() {
+            const listContainer = document.getElementById('student-roster-list');
+            listContainer.innerHTML = '';
+            document.getElementById('student-count').textContent = `${students.length} 位學生`;
+            if (students.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-slate-400 py-8 bg-rose-50/30 rounded-2xl border border-rose-100">尚無學生名單，請點擊上方新增</div>`;
+                return;
+            }
+            students.forEach(student => {
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${student.selected ? 'bg-rose-50/70 border-rose-200 shadow-sm' : 'bg-white border-rose-100'}`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" ${student.selected ? 'checked' : ''} onchange="toggleStudentSelection('${student.id}')" class="w-5 h-5 accent-rose-500 rounded cursor-pointer">
+                        <div>
+                            <h4 class="font-bold text-slate-700">${student.name}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">單堂：$${student.defaultAmount} (${student.defaultDesc})</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="editStudent('${student.id}')" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition-colors" title="編輯"><i class="fa-solid fa-pen text-sm"></i></button>
+                        <button onclick="deleteStudent('${student.id}')" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition-colors" title="刪除"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        function toggleStudentSelection(id) {
+            const s = students.find(item => item.id === id);
+            if (s) { 
+                s.selected = !s.selected; 
+                saveData(); 
+            }
+        }
+
+        function openStudentModal(id = null) {
+            document.getElementById('student-modal').classList.remove('hidden');
+            if (id) {
+                const s = students.find(item => item.id === id);
+                if (s) {
+                    document.getElementById('student-modal-title').innerHTML = '<i class="fa-solid fa-user-pen text-rose-400 mr-2"></i> 編輯學生資料';
+                    document.getElementById('modal-student-id').value = s.id;
+                    document.getElementById('modal-name').value = s.name;
+                    document.getElementById('modal-default-desc').value = s.defaultDesc;
+                    document.getElementById('modal-default-amount').value = s.defaultAmount;
+                }
+            } else {
+                document.getElementById('student-modal-title').innerHTML = '<i class="fa-solid fa-user-plus text-rose-400 mr-2"></i> 新增學生資料';
+                document.getElementById('modal-student-id').value = '';
+                document.getElementById('modal-name').value = '';
+                document.getElementById('modal-default-desc').value = '鋼琴初階';
+                document.getElementById('modal-default-amount').value = '800';
+            }
+        }
+
+        function closeStudentModal() { 
+            document.getElementById('student-modal').classList.add('hidden'); 
+        }
+
+        function saveStudent() {
+            const id = document.getElementById('modal-student-id').value;
+            const name = document.getElementById('modal-name').value.trim();
+            const defaultDesc = document.getElementById('modal-default-desc').value.trim() || '鋼琴課';
+            const defaultAmount = Number(document.getElementById('modal-default-amount').value) || 0;
+            
+            if (!name) { 
+                alert('請輸入學生姓名'); 
+                return; 
+            }
+
+            if (id) {
+                const s = students.find(item => item.id === id);
+                if (s) { 
+                    s.name = name; 
+                    s.defaultDesc = defaultDesc; 
+                    s.defaultAmount = defaultAmount; 
+                    attendanceLogs.forEach(log => { if (log.studentId === s.id) log.name = name; });
+                }
+            } else {
+                students.push({ id: generateId('s'), name, defaultDesc, defaultAmount, selected: true });
+            }
+            closeStudentModal();
+            renderStudentRoster();
+            populateAttendanceStudentSelect();
+            saveData();
+        }
+
+        function editStudent(id) { 
+            openStudentModal(id); 
+        }
+
+        function deleteStudent(id) {
+            if (confirm('確定刪除該學生？相關打卡記錄仍會保留。')) {
+                students = students.filter(item => item.id !== id);
+                renderStudentRoster();
+                populateAttendanceStudentSelect();
+                saveData();
+            }
+        }
+
+        // ---------- 批次下載繳費單 ----------
+        async function batchDownload() {
+            const selectedStudents = students.filter(s => s.selected);
+            if (selectedStudents.length === 0) { 
+                alert('請至少勾選一位要結帳的學生！'); 
+                return; 
+            }
+
+            const batchTitle = document.getElementById('batch-title').value || '收費明細';
+            const batchStartMonth = document.getElementById('batch-start-month').value;
+            const batchEndMonth = document.getElementById('batch-end-month').value;
+            const batchNote = document.getElementById('batch-note').value;
+            const bankName = document.getElementById('input-bank-name').value;
+            const bankAccount = document.getElementById('input-bank-account').value;
+
+            const progressContainer = document.getElementById('batch-progress-container');
+            const progressBar = document.getElementById('batch-progress-bar');
+            const progressText = document.getElementById('batch-progress-text');
+            const progressCount = document.getElementById('batch-progress-count');
+            const downloadBtn = document.getElementById('batch-download-btn');
+
+            progressContainer.classList.remove('hidden');
+            downloadBtn.disabled = true;
+
+            const hiddenContainer = document.getElementById('hidden-receipt-container');
+            const today = getFormattedDate();
+
+            for (let i = 0; i < selectedStudents.length; i++) {
+                const student = selectedStudents[i];
+                const percent = Math.round(((i + 1) / selectedStudents.length) * 100);
+                progressBar.style.width = `${percent}%`;
+                progressText.textContent = `正在處理：${student.name} 的上課打卡明細...`;
+                progressCount.textContent = `${i + 1} / ${selectedStudents.length}`;
+
+                const studentLogs = attendanceLogs.filter(log => {
+                    const logMonth = log.date.substring(0, 7);
+                    const matchStart = !batchStartMonth || logMonth >= batchStartMonth;
+                    const matchEnd = !batchEndMonth || logMonth <= batchEndMonth;
+                    return log.studentId === student.id && matchStart && matchEnd;
+                });
+                studentLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                let itemsHtml = '';
+                let total = 0;
+                if (studentLogs.length === 0) {
+                    itemsHtml = `<tr><td colspan="3" style="text-align: center; padding: 14px; color: #94a3b8;">此區間無打卡紀錄</td></tr>`;
+                } else {
+                    studentLogs.forEach(bi => {
+                        let displayDate = bi.date;
+                        if(bi.date) {
+                            const parts = bi.date.split('-');
+                            if(parts.length === 3) displayDate = `${parts[1]}/${parts[2]}`;
+                        }
+                        itemsHtml += `
+                            <tr>
+                                <td style="padding: 14px 12px; background-color: #fff; color: #fb7185; font-family: monospace;">${displayDate}</td>
+                                <td style="padding: 14px 12px; background-color: #fff; color: #475569; font-weight: 600;">${bi.description}</td>
+                                <td style="padding: 14px 12px; background-color: #fff; color: #475569; font-weight: 600; text-align: right; font-family: monospace;">$${formatMoney(bi.amount)}</td>
+                            </tr>
+                        `;
+                        total += Number(bi.amount) || 0;
+                    });
+                }
+
+                let paymentHtml = '';
+                if (bankName || bankAccount || globalQrCodeDataUrl) {
+                    paymentHtml = `
+                        <div style="margin-top: 16px; background-color: #fff1f2; border-radius: 12px; padding: 16px; border: 2px dashed #fecdd3; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="color: #be123c; font-weight: bold; font-size: 14px; margin-bottom: 8px;">轉帳 / 繳費資訊</h4>
+                                <p style="color: #475569; font-size: 14px; font-weight: 600; margin: 2px 0;">銀行：${bankName || '(未提供)'}</p>
+                                <p style="color: #be123c; font-size: 14px; font-weight: 600; font-family: monospace; margin: 2px 0;">帳號：${bankAccount || '(未提供)'}</p>
+                            </div>
+                            ${globalQrCodeDataUrl ? `<div style="background: white; padding: 4px; border-radius: 8px; border: 1px solid #ffe4e6;"><img src="${globalQrCodeDataUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;"></div>` : ''}
+                        </div>
+                    `;
+                }
+
+                hiddenContainer.innerHTML = `
+                    <div style="display: flex; height: 45px; width: 100%; background: #fff; border-bottom: 3px solid #fda4af;">
+                        ${'<div style="flex: 1; border-right: 1px solid #e2e8f0;"></div>'.repeat(20)}
+                    </div>
+                    <div style="padding: 35px 40px; background: linear-gradient(180deg, #ffffff 0%, #fffbfb 100%); position: relative;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10rem; color: rgba(251, 113, 133, 0.04); pointer-events: none;"><i class="fa-solid fa-cat"></i></div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                            <div>
+                                <h1 style="font-size: 24px; font-weight: 800; color: #334155; margin: 0;">${batchTitle}</h1>
+                                <div style="margin-top: 12px; display: flex; align-items: center;">
+                                    <span style="background: #ffe4e6; color: #e11d48; padding: 4px 12px; border-radius: 9999px; font-size: 14px; font-weight: bold; margin-right: 12px;">學生</span>
+                                    <span style="font-size: 20px; font-weight: bold; color: #334155; border-bottom: 2px solid #fda4af; padding-bottom: 2px; min-width: 120px; display: inline-block; white-space: nowrap;">${student.name}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="font-size: 12px; color: #94a3b8; font-family: monospace; margin: 0;">No. ${today.yyyy.toString().slice(-2)}${today.mm}${today.dd}-${Math.floor(Math.random()*900+100)}</p>
+                                <p style="font-size: 12px; color: #94a3b8; font-family: monospace; margin: 4px 0 0 0;">Date. ${today.display}</p>
+                            </div>
+                        </div>
+                        <table style="width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 15px; margin-bottom: 15px;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left; padding: 10px 12px; color: #fda4af; font-weight: 700; font-size: 14px; border-bottom: 2px dashed #fecdd3;">日期 Date</th>
+                                    <th style="text-align: left; padding: 10px 12px; color: #fda4af; font-weight: 700; font-size: 14px; border-bottom: 2px dashed #fecdd3;">課程內容 Lesson</th>
+                                    <th style="text-align: right; padding: 10px 12px; color: #fda4af; font-weight: 700; font-size: 14px; border-bottom: 2px dashed #fecdd3;">金額 Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHtml}</tbody>
+                        </table>
+                        <div style="background-color: #ffe4e6; border-radius: 16px; padding: 20px; margin-top: 25px; border: 2px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="font-size: 14px; color: #9f1239; font-weight: 800; margin: 0;">本月總計 Total</p>
+                                <p style="font-size: 12px; color: #e11d48; margin: 4px 0 0 0; font-weight: 600;">感謝您的支持與配合 🎵</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 14px; color: #e11d48; font-weight: bold; margin-right: 4px;">NT$</span>
+                                <span style="font-size: 30px; font-weight: 800; color: #e11d48;">${formatMoney(total)}</span>
+                            </div>
+                        </div>
+                        ${batchNote ? `<div style="margin-top: 16px; background-color: #fefce8; border-radius: 12px; padding: 12px; border: 1px solid #fef08a; font-size: 14px; color: #475569; font-weight: 600;">${batchNote}</div>` : ''}
+                        ${paymentHtml}
+                        <div style="margin-top: 32px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; font-weight: bold; color: #94a3b8;">
+                            <div>電子收費明細</div>
+                            <div style="text-align: right;">
+                                <p style="margin: 0;">Teacher / 授課老師</p>
+                                <div style="margin-top: 8px; border-bottom: 2px solid #cbd5e1; width: 120px; height: 16px;"></div>
+                            </div>
+                        </div>
+                        <div style="position: absolute; bottom: 20px; right: 20px; width: 90px; height: 90px; border: 4px dashed #fb7185; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fb7185; transform: rotate(-10deg); background: rgba(255,255,255,0.8);">
+                            <span style="font-weight: 800; font-size: 12px;">CONFIRMED</span>
+                        </div>
+                    </div>
+                `;
+
+                try {
+                    const canvas = await html2canvas(hiddenContainer, { scale: 2, backgroundColor: null, useCORS: true });
+                    const image = canvas.toDataURL("image/png");
+                    const link = document.createElement('a');
+                    let fileMonthStr = (batchStartMonth || today.ym).replace('-', '年') + '月';
+                    if (batchStartMonth !== batchEndMonth && batchEndMonth) {
+                        fileMonthStr += '-' + batchEndMonth.replace('-', '年') + '月';
+                    }
+                    link.download = `${student.name}_${fileMonthStr}音樂課繳費單.png`;
+                    link.href = image;
+                    link.click();
+                    await new Promise(r => setTimeout(r, 400));
+                } catch (err) { 
+                    console.error(`產生 ${student.name} 繳費單失敗:`, err); 
+                }
+            }
+
+            progressText.textContent = '批次自動下載完成！';
+            downloadBtn.disabled = false;
+            setTimeout(() => { 
+                progressContainer.classList.add('hidden'); 
+                progressBar.style.width = '0%'; 
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
